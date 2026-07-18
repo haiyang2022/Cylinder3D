@@ -3,7 +3,7 @@
 # @file: data_builder.py 
 
 import torch
-from dataloader.dataset_semantickitti import get_model_class, collate_fn_BEV
+from dataloader.dataset_semantickitti import get_model_class, collate_fn_BEV, collate_fn_BEV_test
 from dataloader.pc_dataset import get_pc_model_class
 
 
@@ -65,3 +65,36 @@ def build(dataset_config,
                                                      num_workers=val_dataloader_config["num_workers"])
 
     return train_dataset_loader, val_dataset_loader
+
+
+def build_split(dataset_config,
+                dataloader_config,
+                grid_size=[480, 360, 32],
+                return_test=True):
+    data_path = dataloader_config["data_path"]
+    imageset = dataloader_config["imageset"]
+    return_ref = dataloader_config["return_ref"]
+    label_mapping = dataset_config["label_mapping"]
+
+    pc_dataset_class = get_pc_model_class(dataset_config['pc_dataset_type'])
+    point_dataset = pc_dataset_class(data_path, imageset=imageset,
+                                     return_ref=return_ref, label_mapping=label_mapping)
+
+    wrapped_dataset = get_model_class(dataset_config['dataset_type'])(
+        point_dataset,
+        grid_size=grid_size,
+        fixed_volume_space=dataset_config['fixed_volume_space'],
+        max_volume_space=dataset_config['max_volume_space'],
+        min_volume_space=dataset_config['min_volume_space'],
+        ignore_label=dataset_config["ignore_label"],
+        return_test=return_test,
+    )
+
+    collate_fn = collate_fn_BEV_test if return_test else collate_fn_BEV
+    dataset_loader = torch.utils.data.DataLoader(dataset=wrapped_dataset,
+                                                 batch_size=dataloader_config["batch_size"],
+                                                 collate_fn=collate_fn,
+                                                 shuffle=False,
+                                                 num_workers=dataloader_config["num_workers"])
+
+    return dataset_loader, point_dataset

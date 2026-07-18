@@ -1,0 +1,60 @@
+format_version: 5
+
+model_params:
+  model_architecture: "cylinder_asym"
+  output_shape:
+    - 480
+    - 360
+    - 32
+  fea_dim: 9
+  out_fea_dim: 256
+  num_class: 16
+  num_input_features: 16
+  use_norm: True
+  init_size: 32
+
+dataset_params:
+  dataset_type: "cylinder_dataset"
+  pc_dataset_type: "ITCPointCloud"
+  ignore_label: 255
+  return_test: False
+  fixed_volume_space: False
+  label_mapping: "config/label_mapping/itc.yaml"
+  max_volume_space:
+    - 65.0
+    - 3.1415926
+    - 11.0
+  min_volume_space:
+    - 0.0
+    - -3.1415926
+    - -7.0
+
+train_data_loader:
+  data_path: "data/point_clouds_gravity_aligned_bin"
+  imageset: "train"
+  return_ref: True
+  batch_size: 2
+  shuffle: True
+  num_workers: 8
+
+val_data_loader:
+  data_path: "data/point_clouds_gravity_aligned_bin"
+  imageset: "val"
+  return_ref: True
+  batch_size: 1
+  shuffle: False
+  num_workers: 8
+
+train_params:
+  method_name: "Cylinder3D"
+  run_dir: "runs/cylinder3d_itc"
+  model_load_path: ""
+  model_save_path: "runs/cylinder3d_itc/checkpoints/best_val_miou.pt"
+  checkpoint_every_n_steps: 0
+  max_num_epochs: 150
+  min_num_epochs: 30
+  early_stop_patience: 10
+  eval_every_n_steps: 0
+  eval_every_n_epochs: 1
+  learning_rate: 0.001
+  seed: 0

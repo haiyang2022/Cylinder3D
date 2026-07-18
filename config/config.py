@@ -65,6 +65,23 @@ train_params = Map(
      }
 )
 
+train_params_v5 = Map(
+    {
+        "method_name": Str(),
+        "run_dir": Str(),
+        "model_load_path": Str(),
+        "model_save_path": Str(),
+        "checkpoint_every_n_steps": Int(),
+        "max_num_epochs": Int(),
+        "min_num_epochs": Int(),
+        "early_stop_patience": Int(),
+        "eval_every_n_steps": Int(),
+        "eval_every_n_epochs": Int(),
+        "learning_rate": Float(),
+        "seed": Int(),
+    }
+)
+
 schema_v4 = Map(
     {
         "format_version": Int(),
@@ -76,8 +93,19 @@ schema_v4 = Map(
     }
 )
 
+schema_v5 = Map(
+    {
+        "format_version": Int(),
+        "model_params": model_params,
+        "dataset_params": dataset_params,
+        "train_data_loader": train_data_loader,
+        "val_data_loader": val_data_loader,
+        "train_params": train_params_v5,
+    }
+)
 
-SCHEMA_FORMAT_VERSION_TO_SCHEMA = {4: schema_v4}
+
+SCHEMA_FORMAT_VERSION_TO_SCHEMA = {4: schema_v4, 5: schema_v5}
 
 
 def load_config_data(path: str) -> dict:

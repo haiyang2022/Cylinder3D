@@ -103,6 +103,65 @@ class SemKITTI_sk(data.Dataset):
 
 
 @register_dataset
+class ITCPointCloud(data.Dataset):
+    """ITC-DATASET-2026 single-frame point cloud reader.
+
+    Each point record is x, y, z as float32, followed by uint8 intensity and
+    uint8 semantic label. Intensity is normalized to [0, 1].
+    """
+
+    bin_dtype = np.dtype([
+        ("x", "<f4"),
+        ("y", "<f4"),
+        ("z", "<f4"),
+        ("intensity", "u1"),
+        ("label", "u1"),
+    ])
+
+    def __init__(self, data_path, imageset='train',
+                 return_ref=True, label_mapping="itc.yaml", nusc=None):
+        self.return_ref = return_ref
+        self.imageset = imageset
+        self.data_path = data_path
+        self.split_dir = os.path.join(data_path, imageset)
+        if imageset not in ["train", "val", "test"]:
+            raise Exception('Split must be train/val/test')
+        if not os.path.isdir(self.split_dir):
+            raise FileNotFoundError(f"ITC split directory not found: {self.split_dir}")
+
+        with open(label_mapping, 'r') as stream:
+            itc_yaml = yaml.safe_load(stream)
+        self.learning_map = itc_yaml.get('learning_map', {})
+
+        self.im_idx = []
+        for dirpath, _, filenames in os.walk(self.split_dir):
+            for filename in sorted(filenames):
+                if filename.endswith(".bin"):
+                    self.im_idx.append(os.path.abspath(os.path.join(dirpath, filename)))
+        self.im_idx.sort()
+        if not self.im_idx:
+            raise FileNotFoundError(f"No ITC .bin files found under: {self.split_dir}")
+
+    def __len__(self):
+        return len(self.im_idx)
+
+    def __getitem__(self, index):
+        frame_path = self.im_idx[index]
+        raw_data = np.fromfile(frame_path, dtype=self.bin_dtype)
+        xyz = np.stack([raw_data["x"], raw_data["y"], raw_data["z"]], axis=1).astype(np.float32)
+        annotated_data = raw_data["label"].astype(np.uint8)
+        if self.learning_map:
+            annotated_data = np.vectorize(self.learning_map.__getitem__)(annotated_data).astype(np.uint8)
+        annotated_data = annotated_data.reshape((-1, 1))
+
+        data_tuple = (xyz, annotated_data)
+        if self.return_ref:
+            intensity = raw_data["intensity"].astype(np.float32) / 255.0
+            data_tuple += (intensity,)
+        return data_tuple
+
+
+@register_dataset
 class SemKITTI_nusc(data.Dataset):
     def __init__(self, data_path, imageset='train',
                  return_ref=False, label_mapping="nuscenes.yaml", nusc=None):
